@@ -1,0 +1,12 @@
+name: Publish Convention Plugin
+
+on:
+  workflow_dispatch:
+
+jobs:
+  release:
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    uses: ./.github/workflows/template/publish.yml
+    with:
+      modules: '.'
+    secrets: inherit

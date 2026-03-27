@@ -5,7 +5,6 @@ plugins {
 }
 
 group = "xyz.bitsquidd"
-version = "1.0.0" // Do not change. This is the version of the convention plugin its self.
 
 java {
     disableAutoTargetJvm()
