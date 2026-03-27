@@ -183,12 +183,12 @@ jobs:
             MAJOR=$(echo "$CURRENT" | cut -d'.' -f1)
             MID=$(echo "$CURRENT"   | cut -d'.' -f2)
             PATCH=$(echo "$CURRENT" | cut -d'.' -f3)
-    
+
             NEW_PATCH=$((PATCH + 1))
             NEW_VERSION="$MAJOR.$MID.$NEW_PATCH"
-    
-            sed -i "s/^version=.*/version=$NEW_VERSION/" gradle.properties
-    
+
+            sed -i "s/^version\s*=.*/version=$NEW_VERSION/" gradle.properties
+
             echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
 
       -   name: Commit and push changes
