@@ -8,7 +8,6 @@ group:
       - source: gradle/wrapper/gradle-wrapper.jar
       - source: gradlew
       - source: gradlew.bat
-      - source: gradle/libs.versions.toml
       - source: template/gradle.properties.template
         dest: gradle.properties
         replace: false
