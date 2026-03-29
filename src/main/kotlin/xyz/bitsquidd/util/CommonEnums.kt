@@ -9,11 +9,17 @@ enum class StandardDependencyConfig(val value: String) {
     TEST_RUNTIME_ONLY("testRuntimeOnly")
 }
 
+enum class BuildStrategy(val value: String) {
+    SHADE("SHADE"),
+    NONE("NONE")
+}
+
 enum class CustomDependencyConfig(val value: String) {
     ERROR_PRONE("errorprone"),
 }
 
-enum class BitProjectProperty(val value: String) {
+enum class ProjectProperty(val value: String) {
     CUSTOM_JAR_NAME("bit_customJarName"),
     SHADOW_EXCLUDES("bit_shadowExcludes"),
+    BUILD_STRATEGY("bit_buildStrategy")
 }

@@ -15,7 +15,8 @@ import org.gradle.jvm.tasks.Jar
 import org.gradle.jvm.toolchain.JavaLanguageVersion
 import org.gradle.kotlin.dsl.*
 import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
-import xyz.bitsquidd.util.BitProjectProperty
+import xyz.bitsquidd.util.ProjectProperty
+import xyz.bitsquidd.util.BuildStrategy
 import xyz.bitsquidd.util.CustomDependencyConfig
 import xyz.bitsquidd.util.StandardDependencyConfig
 import xyz.bitsquidd.util.Util.library
@@ -80,6 +81,8 @@ class BitConventionPlugin : Plugin<Project> {
 
     private fun Project.configurePublishing() {
         afterEvaluate {
+            val strategy = findProperty(ProjectProperty.BUILD_STRATEGY.value) ?: BuildStrategy.NONE.value
+
             extensions.configure<PublishingExtension> {
                 publications {
                     create<MavenPublication>("maven") {
@@ -87,11 +90,38 @@ class BitConventionPlugin : Plugin<Project> {
                         artifactId = project.name.lowercase()
                         version = project.version.toString()
 
-                        artifact(tasks.named("shadowJar"))
-                        artifact(tasks.named("sourcesJar"))
-                        artifact(tasks.named("javadocJar"))
+                        if (strategy == BuildStrategy.NONE.value) {
+                            from(components["java"])
+                        } else {
+                            artifact(tasks.named("shadowJar"))
+                            artifact(tasks.named("sourcesJar"))
+                            artifact(tasks.named("javadocJar"))
+                        }
                     }
                 }
+            }
+        }
+    }
+
+    private fun Project.configureTasks() {
+        val strategy = findProperty(ProjectProperty.BUILD_STRATEGY.value) ?: BuildStrategy.NONE.value
+
+        tasks.withType<JavaCompile>().configureEach { options.encoding = "UTF-8" }
+
+        tasks.named<Jar>("jar") {
+            val customName = findProperty(ProjectProperty.CUSTOM_JAR_NAME.value) as String?
+            if (customName != null) archiveBaseName.set(customName)
+
+            if (strategy != BuildStrategy.NONE.value) {
+                finalizedBy(tasks.named("shadowJar"))
+            }
+        }
+
+        tasks.named("assemble") {
+            if (strategy != BuildStrategy.NONE.value) {
+                dependsOn(tasks.named("shadowJar"))
+            } else {
+                dependsOn(tasks.named("jar"))
             }
         }
 
@@ -99,15 +129,6 @@ class BitConventionPlugin : Plugin<Project> {
             options.encoding = "UTF-8"
             (options as StandardJavadocDocletOptions).addStringOption("Xdoclint:none", "-quiet")
         }
-    }
-
-    private fun Project.configureTasks() {
-        tasks.withType<JavaCompile>().configureEach { options.encoding = "UTF-8" }
-        tasks.named<Jar>("jar") {
-            archiveFileName.set(findProperty(BitProjectProperty.CUSTOM_JAR_NAME.value) as String? + ".jar")
-            finalizedBy(tasks.named("shadowJar"))
-        }
-        tasks.named("assemble") { dependsOn(tasks.named("shadowJar")) }
     }
 
 
@@ -148,15 +169,18 @@ class BitConventionPlugin : Plugin<Project> {
 
 
     private fun Project.configureShadowJar(libs: VersionCatalog) {
+        val strategy = findProperty(ProjectProperty.BUILD_STRATEGY.value) ?: BuildStrategy.NONE.value
+        if (strategy == BuildStrategy.NONE.value) return
+
         plugins.withId(libs.plugin("shadow")) {
             tasks.withType<ShadowJar>().configureEach {
-                val customJarName = findProperty(BitProjectProperty.CUSTOM_JAR_NAME.value) as String?
+                val customJarName = findProperty(ProjectProperty.CUSTOM_JAR_NAME.value) as String?
                 if (customJarName != null) archiveBaseName.set(customJarName)
                 archiveVersion.set("")
                 archiveClassifier.set("")
 
-                val excludes = (findProperty(BitProjectProperty.SHADOW_EXCLUDES.value) as? String)?.split(",") ?: emptyList()
-                excludes.forEach { exclude("group:$it") }
+                val excludes = (findProperty(ProjectProperty.SHADOW_EXCLUDES.value) as? String)?.split(",") ?: emptyList()
+                excludes.forEach { exclude(it) }
 
                 manifest { attributes["Implementation-Version"] = version }
             }
