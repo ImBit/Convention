@@ -4,7 +4,7 @@ plugins {
     `java-gradle-plugin`
 }
 
-group = "xyz.bitsquidd"
+group = "com.github.ImBit"
 
 java {
     disableAutoTargetJvm()
@@ -35,7 +35,7 @@ dependencies {
 gradlePlugin {
     plugins {
         create("bitConvention") {
-            id = "xyz.bitsquidd.convention"
+            id = "com.github.ImBit.convention"
             implementationClass = "xyz.bitsquidd.BitConventionPlugin"
             displayName = "ImBit Convention Plugin"
             description = "Shared build conventions for all ImBit projects"

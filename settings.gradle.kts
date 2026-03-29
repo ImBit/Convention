@@ -5,4 +5,4 @@ pluginManagement {
     }
 }
 
-rootProject.name = "Bit-Build"
+rootProject.name = "Convention"

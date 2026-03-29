@@ -15,12 +15,14 @@ object BuildUtil {
             val srcDir = project.file("src/main/java")
             val templateFile = rootProject.file("template/package-info.template")
 
+            if (!srcDir.exists()) return@register
+            if (templateFile.exists()) return@register
+
             inputs.dir(srcDir).optional(true)
             inputs.file(templateFile).optional(true)
             outputs.dir(srcDir).optional(true)
 
             doLast {
-                if (!srcDir.exists()) return@doLast
                 deleteEmptyDirs(srcDir)
                 createPackageInfo(srcDir, templateFile)
                 deleteEmptyDirs(srcDir)

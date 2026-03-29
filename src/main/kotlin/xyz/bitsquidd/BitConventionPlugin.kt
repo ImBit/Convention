@@ -21,8 +21,6 @@ import xyz.bitsquidd.util.StandardDependencyConfig
 import xyz.bitsquidd.util.Util.library
 import xyz.bitsquidd.util.Util.libs
 import xyz.bitsquidd.util.Util.plugin
-import kotlin.text.get
-import kotlin.toString
 
 class BitConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) {
@@ -38,15 +36,17 @@ class BitConventionPlugin : Plugin<Project> {
 
         // SUBPROJECTS - plugins, extensions, tasks no catalog access
         target.subprojects {
-            group = "xyz.bitsquidd"
-            version = target.version
+            afterEvaluate {
+                group = target.group
+                version = target.version
+            }
 
             // Configure extensions, dependencies, and tasks.
             // Must be called AFTER plugins are applied above.
-            configureTasks()
-            configurePublishing()
             configureExtensions()
+            configureTasks()
             configureShadowJar(libs)
+            configurePublishing()
         }
 
         // ROOT ONLY - directory standardisation aggregator
@@ -79,14 +79,18 @@ class BitConventionPlugin : Plugin<Project> {
 
 
     private fun Project.configurePublishing() {
-        extensions.configure<PublishingExtension> {
-            publications {
-                create<MavenPublication>("maven") {
-                    groupId = project.group.toString()
-                    artifactId = project.name.lowercase()
-                    version = project.version.toString()
+        afterEvaluate {
+            extensions.configure<PublishingExtension> {
+                publications {
+                    create<MavenPublication>("maven") {
+                        groupId = project.group.toString()
+                        artifactId = project.name.lowercase()
+                        version = project.version.toString()
 
-                    from(components["java"])
+                        artifact(tasks.named("shadowJar"))
+                        artifact(tasks.named("sourcesJar"))
+                        artifact(tasks.named("javadocJar"))
+                    }
                 }
             }
         }
