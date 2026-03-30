@@ -118,7 +118,12 @@ class BitConventionPlugin : Plugin<Project> {
 
     private fun Project.registerShadeConfiguration() {
         val shade = configurations.maybeCreate("shade")
-        configurations.getByName("implementation").extendsFrom(shade)
+        configurations.getByName("api").extendsFrom(shade)
+        shade.isTransitive = false
+
+        afterEvaluate {
+            artifacts.add("shade", tasks.named("shadowJar"))
+        }
 
         fun DependencyHandlerScope.shade(dependencyNotation: Any) {
             add("shade", dependencyNotation)
@@ -180,7 +185,9 @@ class BitConventionPlugin : Plugin<Project> {
                     BuildStrategy.DEFAULT -> {
                         configurations = listOf(shade)
                     }
-                    BuildStrategy.FAT -> {/* Default shading - everything */}
+                    BuildStrategy.FAT -> {
+                        /* Fat shading - everything */
+                    }
                 }
 
                 manifest { attributes["Implementation-Version"] = version }
