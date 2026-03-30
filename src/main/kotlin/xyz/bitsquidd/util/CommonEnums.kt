@@ -10,8 +10,8 @@ enum class StandardDependencyConfig(val value: String) {
 }
 
 enum class BuildStrategy(val value: String) {
-    SHADE("SHADE"),
-    NONE("NONE")
+    DEFAULT("DEFAULT"),
+    FAT("FAT")
 }
 
 enum class CustomDependencyConfig(val value: String) {
@@ -20,6 +20,5 @@ enum class CustomDependencyConfig(val value: String) {
 
 enum class ProjectProperty(val value: String) {
     CUSTOM_JAR_NAME("bit_customJarName"),
-    SHADOW_EXCLUDES("bit_shadowExcludes"),
     BUILD_STRATEGY("bit_buildStrategy")
 }

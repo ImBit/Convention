@@ -15,8 +15,8 @@ import org.gradle.jvm.tasks.Jar
 import org.gradle.jvm.toolchain.JavaLanguageVersion
 import org.gradle.kotlin.dsl.*
 import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
-import xyz.bitsquidd.util.ProjectProperty
 import xyz.bitsquidd.util.BuildStrategy
+import xyz.bitsquidd.util.ProjectProperty
 import xyz.bitsquidd.util.CustomDependencyConfig
 import xyz.bitsquidd.util.StandardDependencyConfig
 import xyz.bitsquidd.util.Util.library
@@ -27,23 +27,19 @@ class BitConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) {
         val libs = target.libs()
 
-        // ALLPROJECTS - repos only, no catalog access
+        // ALLPROJECTS - repos only
         target.allprojects {
             // Configure plugins first.
             configurePlugins(libs)
             configureStandardDependencies(libs)
             configureErrorProne()
+            registerShadeConfiguration()
         }
 
-        // SUBPROJECTS - plugins, extensions, tasks no catalog access
+        // Configure extensions, dependencies, and tasks.
+        // Must be called AFTER plugins are applied above.
+        // SUBPROJECTS - plugins, extensions
         target.subprojects {
-            afterEvaluate {
-                group = target.group
-                version = target.version
-            }
-
-            // Configure extensions, dependencies, and tasks.
-            // Must be called AFTER plugins are applied above.
             configureExtensions()
             configureTasks()
             configureShadowJar(libs)
@@ -81,22 +77,20 @@ class BitConventionPlugin : Plugin<Project> {
 
     private fun Project.configurePublishing() {
         afterEvaluate {
-            val strategy = findProperty(ProjectProperty.BUILD_STRATEGY.value) ?: BuildStrategy.NONE.value
+            if (group.toString().isBlank() || version.toString() == "unspecified") {
+                throw IllegalStateException("Project group or version is not set.")
+            }
 
             extensions.configure<PublishingExtension> {
                 publications {
                     create<MavenPublication>("maven") {
-                        groupId = project.group.toString()
+                        groupId = project.group.toString().lowercase()
                         artifactId = project.name.lowercase()
                         version = project.version.toString()
 
-                        if (strategy == BuildStrategy.NONE.value) {
-                            from(components["java"])
-                        } else {
-                            artifact(tasks.named("shadowJar"))
-                            artifact(tasks.named("sourcesJar"))
-                            artifact(tasks.named("javadocJar"))
-                        }
+                        artifact(tasks.named("shadowJar"))
+                        artifact(tasks.named("sourcesJar"))
+                        artifact(tasks.named("javadocJar"))
                     }
                 }
             }
@@ -104,25 +98,16 @@ class BitConventionPlugin : Plugin<Project> {
     }
 
     private fun Project.configureTasks() {
-        val strategy = findProperty(ProjectProperty.BUILD_STRATEGY.value) ?: BuildStrategy.NONE.value
-
         tasks.withType<JavaCompile>().configureEach { options.encoding = "UTF-8" }
 
         tasks.named<Jar>("jar") {
             val customName = findProperty(ProjectProperty.CUSTOM_JAR_NAME.value) as String?
             if (customName != null) archiveBaseName.set(customName)
-
-            if (strategy != BuildStrategy.NONE.value) {
-                finalizedBy(tasks.named("shadowJar"))
-            }
+            finalizedBy(tasks.named("shadowJar"))
         }
 
         tasks.named("assemble") {
-            if (strategy != BuildStrategy.NONE.value) {
-                dependsOn(tasks.named("shadowJar"))
-            } else {
-                dependsOn(tasks.named("jar"))
-            }
+            dependsOn(tasks.named("shadowJar"))
         }
 
         tasks.named<Javadoc>("javadoc") {
@@ -131,6 +116,14 @@ class BitConventionPlugin : Plugin<Project> {
         }
     }
 
+    private fun Project.registerShadeConfiguration() {
+        val shade = configurations.maybeCreate("shade")
+        configurations.getByName("implementation").extendsFrom(shade)
+
+        fun DependencyHandlerScope.shade(dependencyNotation: Any) {
+            add("shade", dependencyNotation)
+        }
+    }
 
     private fun Project.configureExtensions() {
         extensions.configure<JavaPluginExtension> {
@@ -169,8 +162,12 @@ class BitConventionPlugin : Plugin<Project> {
 
 
     private fun Project.configureShadowJar(libs: VersionCatalog) {
-        val strategy = findProperty(ProjectProperty.BUILD_STRATEGY.value) ?: BuildStrategy.NONE.value
-        if (strategy == BuildStrategy.NONE.value) return
+        val strategy = (findProperty(ProjectProperty.BUILD_STRATEGY.value) as String?)
+            ?.uppercase()
+            ?.let { raw -> BuildStrategy.entries.firstOrNull { it.value == raw } }
+            ?: BuildStrategy.DEFAULT
+
+        val shade = configurations.maybeCreate("shade")
 
         plugins.withId(libs.plugin("shadow")) {
             tasks.withType<ShadowJar>().configureEach {
@@ -179,8 +176,12 @@ class BitConventionPlugin : Plugin<Project> {
                 archiveVersion.set("")
                 archiveClassifier.set("")
 
-                val excludes = (findProperty(ProjectProperty.SHADOW_EXCLUDES.value) as? String)?.split(",") ?: emptyList()
-                excludes.forEach { exclude(it) }
+                when (strategy) {
+                    BuildStrategy.DEFAULT -> {
+                        configurations = listOf(shade)
+                    }
+                    BuildStrategy.FAT -> {/* Default shading - everything */}
+                }
 
                 manifest { attributes["Implementation-Version"] = version }
             }
