@@ -9,6 +9,7 @@ package xyz.bitsquidd.util
 
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import org.gradle.api.Project
+import org.gradle.api.artifacts.ProjectDependency
 import org.gradle.kotlin.dsl.DependencyHandlerScope
 import org.gradle.kotlin.dsl.withType
 
@@ -25,15 +26,22 @@ fun Project.relocate(vararg pairs: Pair<String, String>) {
 }
 
 fun DependencyHandlerScope.shade(target: Any) {
-    add("shade", target)
-}
-
-fun DependencyHandlerScope.shadeApi(target: Any) {
-    add("shade", target)
-    add("api", target)
+    when (target) {
+        is ProjectDependency -> {
+            add("shade_internal", project(mapOf("path" to target.path, "configuration" to "shadow")))
+        }
+        else -> {
+            add("shade_internal", target)
+        }
+    }
 }
 
 fun DependencyHandlerScope.includeLibrary(target: Any) {
-    add("implementation", target)
     add("api", target)
+    add("implementation", target)
+}
+
+fun DependencyHandlerScope.shadeApi(target: Any) {
+    shade(target)
+    includeLibrary(target)
 }

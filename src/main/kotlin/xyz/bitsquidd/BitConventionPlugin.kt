@@ -151,13 +151,14 @@ class BitConventionPlugin : Plugin<Project> {
             named("assemble") { dependsOn(named("shadowJar")) }
         }
 
-        val shade = configurations.maybeCreate("shade")
+        val shade = configurations.maybeCreate("shade_internal")
+
         configurations.getByName("compileOnly").extendsFrom(shade)
         shade.isTransitive = false
 
         plugins.withId(libs.plugin("shadow")) {
             tasks.withType<ShadowJar>().configureEach {
-                configurations = listOf(project.configurations.getByName("shade"))
+                configurations = listOf(project.configurations.getByName("shade_internal"))
                 archiveVersion.set("")
                 archiveClassifier.set("")
                 manifest { attributes["Implementation-Version"] = version }

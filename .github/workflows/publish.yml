@@ -16,16 +16,29 @@ on:
     inputs:
       modules:
         description: >
-          List of Gradle submodule names to include as release artifacts. Use "." for a single-module project.
+          List of Gradle submodule names to include as release artifacts.
+          Use "." for a single-module project.
           Examples: "." | "API,Core,Server"
         required: true
         default: '.'
         type: string
+      bumpPatch:
+        description: Bump patch version after release
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
   workflow_call:
     inputs:
       modules:
         required: true
         default: '.'
+        type: string
+      bumpPatch:
+        required: false
+        default: 'true'
         type: string
 
 jobs:
@@ -183,6 +196,7 @@ jobs:
             sed -i "s/\(:[A-Za-z]\+:\)[0-9.]\+/\1$VERSION/g" README.md
 
       -   name: Bump patch version
+          if: ${{ inputs.bumpPatch == 'true' }}
           run: |
             CURRENT="${{ env.VERSION }}"
             MAJOR=$(echo "$CURRENT" | cut -d'.' -f1)
