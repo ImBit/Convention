@@ -30,5 +30,8 @@ group:
 
       # ── Misc ────────────────────────────────────────────────────
       - source: LICENSE
+        replace: false
       - source: template/package-info.template
       - source: libs
+      - source: renovate.json
+        replace: false
