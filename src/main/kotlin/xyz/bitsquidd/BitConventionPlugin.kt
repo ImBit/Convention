@@ -100,18 +100,20 @@ class BitConventionPlugin : Plugin<Project> {
     }
 
     private fun Project.configureExtensions() {
+        val javaVersion = findProperty(ProjectProperty.JAVA_VERSION.value)?.toString()?.toIntOrNull() ?: BitVersions.JAVA
+
         if (extensions.findByType(JavaPluginExtension::class) != null) {
             extensions.configure<JavaPluginExtension> {
                 disableAutoTargetJvm()
                 withSourcesJar()
                 withJavadocJar()
-                toolchain.languageVersion.set(JavaLanguageVersion.of(BitVersions.JAVA))
+                toolchain.languageVersion.set(JavaLanguageVersion.of(javaVersion))
             }
         }
 
         if (extensions.findByType(KotlinJvmProjectExtension::class) != null) {
             extensions.configure<KotlinJvmProjectExtension> {
-                jvmToolchain(BitVersions.JAVA)
+                jvmToolchain(javaVersion)
             }
         }
     }

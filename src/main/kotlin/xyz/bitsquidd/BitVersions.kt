@@ -5,5 +5,5 @@ object BitVersions {
     /**
      * The Java version to compile against.
      */
-    const val JAVA = 21
+    const val JAVA: Int = 21
 }
