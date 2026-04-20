@@ -100,20 +100,11 @@ class BitConventionPlugin : Plugin<Project> {
     }
 
     private fun Project.configureExtensions() {
-        val javaVersion = findProperty(ProjectProperty.JAVA_VERSION.value)?.toString()?.toIntOrNull() ?: BitVersions.JAVA
-
         if (extensions.findByType(JavaPluginExtension::class) != null) {
             extensions.configure<JavaPluginExtension> {
                 disableAutoTargetJvm()
                 withSourcesJar()
                 withJavadocJar()
-                toolchain.languageVersion.set(JavaLanguageVersion.of(javaVersion))
-            }
-        }
-
-        if (extensions.findByType(KotlinJvmProjectExtension::class) != null) {
-            extensions.configure<KotlinJvmProjectExtension> {
-                jvmToolchain(javaVersion)
             }
         }
     }
@@ -151,18 +142,14 @@ class BitConventionPlugin : Plugin<Project> {
 
 
     private fun Project.configureShadowJar() {
-        tasks {
-            named("jar") { enabled = false }
-            named("assemble") { dependsOn(named("shadowJar")) }
-        }
-
         val shade = configurations.maybeCreate("shade_internal")
 
         configurations.getByName("compileOnly").extendsFrom(shade)
-        shade.isTransitive = false
 
         plugins.withId(PLUGIN_SHADOW) {
+            val jarTask = tasks.named("jar")
             tasks.withType<ShadowJar>().configureEach {
+                dependsOn(jarTask)
                 configurations = listOf(project.configurations.getByName("shade_internal"))
                 archiveVersion.set("")
                 archiveClassifier.set("")

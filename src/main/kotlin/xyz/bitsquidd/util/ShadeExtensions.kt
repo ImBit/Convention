@@ -9,6 +9,7 @@ package xyz.bitsquidd.util
 
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import org.gradle.api.Project
+import org.gradle.api.artifacts.ModuleDependency
 import org.gradle.api.artifacts.ProjectDependency
 import org.gradle.kotlin.dsl.DependencyHandlerScope
 import org.gradle.kotlin.dsl.withType
@@ -25,14 +26,17 @@ fun Project.relocate(vararg pairs: Pair<String, String>) {
     }
 }
 
-fun DependencyHandlerScope.shade(target: Any) {
+fun DependencyHandlerScope.shade(target: Any, includeTransitive: Boolean = false) {
     when (target) {
         is ProjectDependency -> {
-            add("shade_internal", project(mapOf("path" to target.path, "configuration" to "shadow")))
-        }
-
-        else -> {
-            add("shade_internal", target)
+            if (includeTransitive) {
+                add("shade_internal", project(mapOf("path" to target.path)))
+            } else {
+                add("shade_internal", project(mapOf("path" to target.path, "configuration" to "shadow")))
+            }
+        } else -> {
+            val dep = add("shade_internal", target)
+            if (!includeTransitive) (dep as? ModuleDependency)?.isTransitive = false
         }
     }
 }
@@ -42,12 +46,12 @@ fun DependencyHandlerScope.includeLibrary(target: Any) {
     add("implementation", target)
 }
 
-fun DependencyHandlerScope.shadeLibrary(target: Any) {
-    shade(target)
+fun DependencyHandlerScope.shadeLibrary(target: Any, includeTransitive: Boolean = false) {
+    shade(target, includeTransitive)
     includeLibrary(target)
 }
 
-fun DependencyHandlerScope.shadeImplementation(target: Any) {
-    shade(target)
+fun DependencyHandlerScope.shadeImplementation(target: Any, includeTransitive: Boolean = false) {
+    shade(target, includeTransitive)
     add("implementation", target)
 }
