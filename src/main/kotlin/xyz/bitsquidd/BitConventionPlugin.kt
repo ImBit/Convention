@@ -1,5 +1,6 @@
 package xyz.bitsquidd
 
+import com.github.jengelman.gradle.plugins.shadow.ShadowExtension
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import net.ltgt.gradle.errorprone.CheckSeverity
 import net.ltgt.gradle.errorprone.errorprone
@@ -76,7 +77,11 @@ class BitConventionPlugin : Plugin<Project> {
                         artifactId = project.name.lowercase()
                         version = project.version.toString()
 
-                        from(components["java"])
+                        if (property(ProjectProperty.DoShading)) {
+                            project.extensions.getByType<ShadowExtension>().let { from(components["shadow"]) }
+                        } else {
+                            from(components["java"])
+                        }
                     }
                 }
             }
@@ -114,9 +119,9 @@ class BitConventionPlugin : Plugin<Project> {
                 disableWarningsInGeneratedCode.set(true)
                 disableAllWarnings.set(true)
 
-                findProperty(ProjectProperty.NULLAWAY_DIRECTORY.value)?.let {
+                property(ProjectProperty.NullawayDirectory).takeIf { it.isNotBlank() }?.let {
                     check("NullAway", CheckSeverity.ERROR)
-                    option("NullAway:AnnotatedPackages", it as String)
+                    option("NullAway:AnnotatedPackages", it)
                     option("NullAway:ExternalInitAnnotations", "org.jetbrains.annotations.NotNullByDefault")
                     option("NullAway:NonnullAnnotations", "org.jetbrains.annotations.NotNull")
                     option("NullAway:NullableAnnotations", "org.jetbrains.annotations.Nullable")
@@ -138,28 +143,21 @@ class BitConventionPlugin : Plugin<Project> {
 
 
     private fun Project.configureShadowJar() {
-        val shade = configurations.maybeCreate("shade_internal")
-
-        val shadowPluginApplied = findProperty(ProjectProperty.DO_SHADING.value)?.toString()?.toBoolean() ?: true
-        if (!shadowPluginApplied) return
+        if (!property(ProjectProperty.DoShading)) return
 
         tasks {
-            named("jar") { enabled = false }
+            // We don't disable jar, Shadow needs it for project deps
             named("assemble") { dependsOn(named("shadowJar")) }
         }
 
-        configurations.getByName("compileOnly").extendsFrom(shade)
-
         plugins.withId(PLUGIN_SHADOW) {
             tasks.withType<ShadowJar>().configureEach {
-                configurations = listOf(project.configurations.getByName("shade_internal"))
                 archiveVersion.set("")
                 archiveClassifier.set("")
                 manifest { attributes["Implementation-Version"] = version }
 
-                findProperty(ProjectProperty.CUSTOM_JAR_NAME.value)?.let {
-                    val customName = it as String
-                    if (customName.isNotBlank()) archiveBaseName.set(customName)
+                property(ProjectProperty.CustomJarName).let {
+                    if (it.isNotBlank()) archiveBaseName.set(it)
                 }
             }
         }
@@ -171,6 +169,16 @@ class BitConventionPlugin : Plugin<Project> {
             add(CustomDependencyConfig.ERROR_PRONE.value, NULLAWAY)
 
             add(StandardDependencyConfig.COMPILE_ONLY.value, JB_ANNOTATIONS)
+        }
+    }
+
+    private fun <T> Project.property(prop: ProjectProperty<T>): T {
+        val raw = findProperty(prop.value) ?: return prop.default
+        @Suppress("UNCHECKED_CAST")
+        return when (prop.default) {
+            is Boolean -> (raw.toString().toBoolean()) as T
+            is String -> raw.toString() as T
+            else -> raw as T
         }
     }
 

@@ -19,8 +19,8 @@ enum class CustomDependencyConfig(val value: String) {
     ERROR_PRONE("errorprone"),
 }
 
-enum class ProjectProperty(val value: String) {
-    CUSTOM_JAR_NAME("bit_customJarName"),
-    DO_SHADING("bit_doShading"),
-    NULLAWAY_DIRECTORY("nullaway.annotatedPackages"),
+sealed class ProjectProperty<T>(val value: String, val default: T) {
+    object CustomJarName : ProjectProperty<String>("bit_customJarName", "")
+    object DoShading : ProjectProperty<Boolean>("bit_doShading", false)
+    object NullawayDirectory : ProjectProperty<String>("nullaway.annotatedPackages", "")
 }
