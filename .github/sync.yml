@@ -1,7 +1,7 @@
 group:
   - repos: |
-      ImBit/Bits
-      ImBit/PacketNinja
+      Orbitary/Bits
+      Orbitary/PacketNinja
     files:
       # ── Gradle Wrapper ─────────────────────────────────────────
       - source: gradle/wrapper/gradle-wrapper.properties
