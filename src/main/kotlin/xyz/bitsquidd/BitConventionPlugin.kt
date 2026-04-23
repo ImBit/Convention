@@ -173,9 +173,9 @@ class BitConventionPlugin : Plugin<Project> {
                             .map(String::trim)
                             .filter(String::isNotBlank)
 
-                        exclude { dependency ->
-                            !whitelist.any {
-                                dependency.moduleGroup?.startsWith(it) == true
+                        if (whitelist.isNotEmpty()) {
+                            exclude { dependency ->
+                                !whitelist.any { dependency.moduleGroup?.startsWith(it) == true }
                             }
                         }
                     }
