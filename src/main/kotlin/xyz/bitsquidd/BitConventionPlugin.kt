@@ -148,34 +148,37 @@ class BitConventionPlugin : Plugin<Project> {
 
         configurations.getByName("implementation").extendsFrom(shadeTransitive, shadeNonTransitive)
 
-        tasks {
-            named("assemble") { dependsOn("shadowJar") }
-            named<Jar>("jar") { archiveClassifier = "ignored" }
-        }
+        val doShading = property(ProjectProperty.DoShading)
 
-        plugins.withId(PLUGIN_SHADOW) {
-            tasks.withType<ShadowJar>().configureEach {
-                configurations = listOf(shadeTransitive, shadeNonTransitive)
+        if (doShading) {
+            tasks {
+                named("assemble") { dependsOn("shadowJar") }
+            }
 
-                archiveVersion.set("")
-                archiveClassifier.set("") //fat
-                manifest { attributes["Implementation-Version"] = version }
+            plugins.withId(PLUGIN_SHADOW) {
+                tasks.withType<ShadowJar>().configureEach {
+                    configurations = listOf(shadeTransitive, shadeNonTransitive)
 
-                property(ProjectProperty.CustomJarName).let {
-                    if (it.isNotBlank()) archiveBaseName.set(it)
+                    archiveVersion.set("")
+                    archiveClassifier.set("") //fat
+                    manifest { attributes["Implementation-Version"] = version }
+
+                    property(ProjectProperty.CustomJarName).let {
+                        if (it.isNotBlank()) archiveBaseName.set(it)
+                    }
                 }
             }
         }
 
-//        tasks.named<Jar>("jar") {
-//            archiveVersion.set("")
-//            archiveClassifier.set("") // No classifier for the normal jar.
-//            manifest { attributes["Implementation-Version"] = version }
-//
-//            property(ProjectProperty.CustomJarName).let {
-//                if (it.isNotBlank()) archiveBaseName.set(it)
-//            }
-//        }
+        tasks.named<Jar>("jar") {
+            archiveVersion.set("")
+            archiveClassifier.set(if (doShading) "ignored" else "") // No classifier for the normal jar.
+            manifest { attributes["Implementation-Version"] = version }
+
+            property(ProjectProperty.CustomJarName).let {
+                if (it.isNotBlank()) archiveBaseName.set(it)
+            }
+        }
     }
 
     private fun Project.configureStandardDependencies() {

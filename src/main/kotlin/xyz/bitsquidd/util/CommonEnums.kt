@@ -21,6 +21,6 @@ enum class CustomDependencyConfig(val value: String) {
 
 sealed class ProjectProperty<T>(val value: String, val default: T) {
     object CustomJarName : ProjectProperty<String>("bit_customJarName", "")
-    object DoShading : ProjectProperty<Boolean>("bit_doShading", false)
+    object DoShading : ProjectProperty<Boolean>("bit_doShading", true)
     object NullawayDirectory : ProjectProperty<String>("nullaway.annotatedPackages", "")
 }
