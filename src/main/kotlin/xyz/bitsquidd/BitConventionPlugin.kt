@@ -166,6 +166,19 @@ class BitConventionPlugin : Plugin<Project> {
                     property(ProjectProperty.CustomJarName).let {
                         if (it.isNotBlank()) archiveBaseName.set(it)
                     }
+
+                    dependencies {
+                        val whitelist = property(ProjectProperty.ShadeWhitelist)
+                            .split(',')
+                            .map(String::trim)
+                            .filter(String::isNotBlank)
+
+                        exclude { dependency ->
+                            !whitelist.any {
+                                dependency.moduleGroup?.startsWith(it) == true
+                            }
+                        }
+                    }
                 }
             }
         }
