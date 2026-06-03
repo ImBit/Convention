@@ -148,7 +148,8 @@ class BitConventionPlugin : Plugin<Project> {
         val shadeNonTransitive = configurations.maybeCreate("shade_internal")
         shadeNonTransitive.isTransitive = false
 
-        configurations.getByName("implementation").extendsFrom(shadeTransitive, shadeNonTransitive)
+        configurations.getByName("compileOnly").extendsFrom(shadeTransitive, shadeNonTransitive)
+        configurations.getByName("testImplementation").extendsFrom(shadeTransitive, shadeNonTransitive)
 
         val doShading = property(ProjectProperty.DoShading)
 
@@ -184,6 +185,18 @@ class BitConventionPlugin : Plugin<Project> {
                                 !whitelist.any { dependency.moduleGroup?.startsWith(it) == true }
                             }
                         }
+                    }
+                }
+            }
+        }
+
+        if (doShading) {
+            afterEvaluate {
+                val shadowJarTask = tasks.named<ShadowJar>("shadowJar")
+                listOf("apiElements", "runtimeElements").forEach { name ->
+                    configurations.findByName(name)?.outgoing?.let {
+                        it.artifacts.clear()
+                        it.artifact(shadowJarTask) { classifier = "" }
                     }
                 }
             }
