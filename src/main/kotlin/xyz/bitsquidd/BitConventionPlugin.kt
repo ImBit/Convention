@@ -45,6 +45,7 @@ class BitConventionPlugin : Plugin<Project> {
 
             configureErrorProne()
             configureShadowJar()
+            registerAggregatePublishTasks()
         }
 
         // ROOT ONLY - directory standardisation
@@ -210,6 +211,21 @@ class BitConventionPlugin : Plugin<Project> {
             property(ProjectProperty.CustomJarName).let {
                 if (it.isNotBlank()) archiveBaseName.set(it)
             }
+        }
+    }
+
+    private fun Project.registerAggregatePublishTasks() {
+        tasks.register("publishAll") {
+            group = "publishing"
+            description = "Publish all projects to configured repositories"
+            dependsOn(tasks.matching { it.name == "publish" })
+            subprojects.forEach { sub -> dependsOn(sub.tasks.matching { it.name == "publish" }) }
+        }
+        tasks.register("publishAllToMavenLocal") {
+            group = "publishing"
+            description = "Publish all projects to Maven local"
+            dependsOn(tasks.matching { it.name == "publishToMavenLocal" })
+            subprojects.forEach { sub -> dependsOn(sub.tasks.matching { it.name == "publishToMavenLocal" }) }
         }
     }
 
