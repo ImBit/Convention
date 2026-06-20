@@ -106,7 +106,6 @@ class BitConventionPlugin : Plugin<Project> {
             extensions.configure<JavaPluginExtension> {
                 disableAutoTargetJvm()
                 withSourcesJar()
-                withJavadocJar()
             }
         }
     }
