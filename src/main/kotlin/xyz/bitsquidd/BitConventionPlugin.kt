@@ -73,7 +73,11 @@ class BitConventionPlugin : Plugin<Project> {
                 ?.findByName("main")
                 ?: return@afterEvaluate
 
-            if (mainSources.allSource.isEmpty) return@afterEvaluate
+            val hasSources = !mainSources.allSource.isEmpty
+            val hasDependencies = listOf("api", "implementation").any { configName ->
+                configurations.findByName(configName)?.dependencies?.isNotEmpty() == true
+            }
+            if (!hasSources && !hasDependencies) return@afterEvaluate
 
             extensions.configure<PublishingExtension> {
                 publications {
