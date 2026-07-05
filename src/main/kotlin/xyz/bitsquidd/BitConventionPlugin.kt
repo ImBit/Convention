@@ -196,6 +196,13 @@ class BitConventionPlugin : Plugin<Project> {
 
         if (doShading) {
             afterEvaluate {
+                // Only redirect the published artifact to shadowJar if this project actually shades something!
+                // Otherwise shadowJar builds from empty shade_internal(_transitive) configs and produces an empty jar.
+                val hasShadedDeps = listOf("shade_internal", "shade_internal_transitive").any { name ->
+                    configurations.findByName(name)?.dependencies?.isNotEmpty() == true
+                }
+                if (!hasShadedDeps) return@afterEvaluate
+
                 val shadowJarTask = tasks.named<ShadowJar>("shadowJar")
                 listOf("apiElements", "runtimeElements").forEach { name ->
                     configurations.findByName(name)?.outgoing?.let {
